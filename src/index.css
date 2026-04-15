@@ -1,0 +1,100 @@
+/* src/index.css - Global styles merged from src/app/globals.css for Vite */
+/* Every line commented as per migration requirements */
+
+/* Tailwind directives - required for Tailwind CSS processing */
+@tailwind base; /* Tailwind base styles (resets, typography) */
+@tailwind components; /* Tailwind component classes */
+@tailwind utilities; /* Tailwind utility classes */
+
+/* Light mode CSS custom properties (used by Tailwind/shadcn) */
+@layer base {
+  :root {
+    --background: 0 0% 100%; /* Light background color */
+    --foreground: 222.2 84% 4.9%; /* Light text color */
+    --card: 0 0% 100%; /* Card background */
+    --card-foreground: 222.2 84% 4.9%; /* Card text */
+    --popover: 0 0% 100%; /* Popover background */
+    --popover-foreground: 222.2 84% 4.9%; /* Popover text */
+    --primary: 48 96% 53%; /* Primary brand color */
+    --primary-foreground: 213.3 14.3% 10.6%; /* Primary text on primary bg */
+    --secondary: 0 0% 96.1%; /* Secondary bg */
+    --secondary-foreground: 222.2 47.4% 11.2%; /* Secondary text */
+    --muted: 0 0% 96.1%; /* Muted bg */
+    --muted-foreground: 0 0% 45.1%; /* Muted text */
+    --accent: 333 83% 58%; /* Accent color */
+    --accent-foreground: 0 0% 98%; /* Accent text */
+    --destructive: 0 84.2% 60.2%; /* Error color */
+    --destructive-foreground: 0 0% 98%; /* Error text */
+    --border: 0 0% 89.8%; /* Border color */
+    --input: 0 0% 89.8%; /* Input bg/border */
+    --ring: 48 96% 53%; /* Focus ring color */
+    --chart-1: 220 70% 50%; /* Chart color 1 */
+    --chart-2: 160 60% 45%; /* Chart color 2 */
+    --chart-3: 30 80% 55%; /* Chart color 3 */
+    --chart-4: 280 65% 60%; /* Chart color 4 */
+    --chart-5: 340 75% 55%; /* Chart color 5 */
+    --radius: 0.5rem; /* Border radius token */
+    --sidebar-background: 0 0% 100%; /* Sidebar light bg */
+    --sidebar-foreground: 222.2 84% 4.9%; /* Sidebar light text */
+    --sidebar-primary: 48 96% 53%; /* Sidebar primary */
+    --sidebar-primary-foreground: 213.3 14.3% 10.6%; /* Sidebar primary text */
+    --sidebar-accent: 333 83% 58%; /* Sidebar accent */
+    --sidebar-accent-foreground: 0 0% 98%; /* Sidebar accent text */
+    --sidebar-border: 0 0% 89.8%; /* Sidebar border */
+    --sidebar-ring: 48 96% 53%; /* Sidebar focus ring */
+  }
+
+  /* Dark mode CSS custom properties */
+  .dark {
+    --background: 213.3 14.3% 10.6%; /* Dark background */
+    --foreground: 0 0% 98%; /* Dark text */
+    --card: 213.3 14.3% 12.6%; /* Dark card bg */
+    --card-foreground: 0 0% 98%; /* Dark card text */
+    --popover: 213.3 14.3% 10.6%; /* Dark popover */
+    --popover-foreground: 0 0% 98%; /* Dark popover text */
+    --primary: 48 96% 53%; /* Primary same in dark */
+    --primary-foreground: 213.3 14.3% 10.6%; /* Primary text */
+    --secondary: 0 0% 14.9%; /* Dark secondary */
+    --secondary-foreground: 0 0% 98%; /* Dark secondary text */
+    --muted: 0 0% 14.9%; /* Dark muted */
+    --muted-foreground: 0 0% 63.9%; /* Dark muted text */
+    --accent: 333 83% 58%; /* Accent same */
+    --accent-foreground: 0 0% 98%; /* Accent text */
+    --destructive: 0 62.8% 30.6%; /* Dark destructive */
+    --destructive-foreground: 0 0% 98%; /* Dark destructive text */
+    --border: 0 0% 14.9%; /* Dark border */
+    --input: 0 0% 14.9%; /* Dark input */
+    --ring: 48 96% 53%; /* Ring same */
+    --chart-1: 220 70% 50%; /* Charts same */
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 213.3 14.3% 10.6%; /* Dark sidebar */
+    --sidebar-foreground: 0 0% 98%; /* Dark sidebar text */
+    --sidebar-primary: 48 96% 53%; /* Sidebar primary */
+    --sidebar-primary-foreground: 213.3 14.3% 10.6%; /* Sidebar primary text */
+    --sidebar-accent: 333 83% 58%; /* Sidebar accent */
+    --sidebar-accent-foreground: 0 0% 98%; /* Sidebar accent text */
+    --sidebar-border: 0 0% 14.9%; /* Dark sidebar border */
+    --sidebar-ring: 48 96% 53%; /* Sidebar ring */
+  }
+}
+
+/* Base layer resets */
+@layer base {
+  * {
+    @apply border-border; /* Apply border token to all elements */
+  }
+  body {
+    @apply bg-background text-foreground; /* Body uses theme tokens */
+    font-family: 'Inter', sans-serif; /* Default font - Inter */
+  }
+}
+
+/* Import Inter font from @fontsource */
+@import '@fontsource/inter/400.css'; /* Inter regular */
+@import '@fontsource/inter/500.css'; /* Inter medium */
+@import '@fontsource/inter/600.css'; /* Inter semi-bold */
+@import '@fontsource/inter/700.css'; /* Inter bold */
+

@@ -1,0 +1,231 @@
+/**
+ * Core Philosophy:
+ * This ruleset enforces a user-centric and role-based security model for the SonicSphere platform.
+ * It strictly controls data access based on user ownership for private data (profiles, draft tracks, likes)
+ * and uses a shared access model for collaborative data (transactions). A dedicated admin role provides
+ * privileged access for moderation and platform management.
+ *
+ * Data Structure:
+ * The data is organized using a mix of top-level collections for public or shared data, and nested
+ * user-specific subcollections for private data.
+ *   - /users/{userId} - Stores user profile information.
+ *   - /creators/{creatorId} - Publicly-readable creator profiles for the homepage.
+ *   - /tracks/{trackId} - A public marketplace of available tracks.
+ *   - /transactions/{transactionId} - Records of purchases, accessible by participants.
+ *   - /roles_admin/{uid} - A high-performance lookup table to identify administrators.
+ *   - /users/{userId}/draft_tracks/{trackId} - Private drafts owned by a user.
+ *   - /users/{userId}/likes/{likeId} - A user's collection of liked tracks.
+ *
+ * Key Security Decisions:
+ * - Public Data Segregation: A dedicated `/creators` collection stores a subset of public-safe profile
+ *   data. This prevents queries on the homepage from exposing sensitive user information (like emails)
+ *   that is stored in the private `/users` collection.
+ * - Admin Role Segregation: A dedicated `/roles_admin/{uid}` collection is used for fast and secure
+ *   administrator checks via `exists()`, avoiding slower `get()` calls on user profiles.
+ * - Structural Segregation: Private drafts (`/users/{userId}/draft_tracks`) are physically separated
+ *   from public tracks (`/tracks`). This is a critical security pattern that prevents private data
+ *   from ever being exposed in public list queries.
+ * - Authorization Independence via Denormalization: Documents contain all necessary IDs for authorization
+ *   (e.g., `ownerId` on tracks, `buyerId` and `sellerId` on transactions). This makes rules simpler,
+ *   faster, and more reliable by eliminating the need for cross-document reads.
+ * - User Data Privacy: User enumeration is disallowed on the main `/users` collection. Users can only
+ *   access data within their own document tree (e.g., `/users/{userId}/**`).
+ * - Transaction Integrity: Once created, transactions are immutable for buyers and sellers, with modifications
+ *   and deletions restricted to administrators to preserve the integrity of purchase records.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    // ----------------
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * This is the primary function for enforcing data ownership.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if the authenticated user has an administrator role.
+     * This performs a fast, efficient check against the dedicated /roles_admin collection.
+     * It includes a fallback to check the user's document role for data consistency.
+     */
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))
+             || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+    }
+
+    /**
+     * Checks if the authenticated user is a participant (buyer or seller) in a transaction.
+     * Used to grant read access to transaction documents.
+     */
+    function isTransactionParticipant(transactionData) {
+      return request.auth.uid == transactionData.buyerId || request.auth.uid == transactionData.sellerId;
+    }
+
+    /**
+     * Validates an update request for a User document.
+     * Allows admins to change any field, but restricts regular users from changing their own role,
+     * suspension status, or other admin-controlled fields.
+     */
+    function canUpdateUser(request, resource) {
+      let isDocOwner = isOwner(resource.id);
+      let idIsImmutable = request.resource.data.id == resource.data.id;
+
+      // Regular users cannot change these protected fields.
+      let protectedFieldsUnchanged = request.resource.data.role == resource.data.role &&
+                                     request.resource.data.isSuspended == resource.data.isSuspended &&
+                                     request.resource.data.featuredByAdmin == resource.data.featuredByAdmin;
+
+      return idIsImmutable && (isAdmin() || (isDocOwner && protectedFieldsUnchanged));
+    }
+
+    /**
+     * Validates an update request for a Track document.
+     * Allows admins to change any field, but prevents the owner from changing the ownerId or
+     * admin-controlled fields like 'isFeaturedByAdmin'.
+     */
+    function canUpdateTrack(request, resource) {
+      let isDocOwner = isOwner(resource.data.ownerId);
+      let ownerIdIsImmutable = request.resource.data.ownerId == resource.data.ownerId;
+      let adminFieldsUnchanged = request.resource.data.isFeaturedByAdmin == resource.data.isFeaturedByAdmin;
+
+      return ownerIdIsImmutable && (isAdmin() || (isDocOwner && adminFieldsUnchanged));
+    }
+
+    // Collection Rules
+    // ----------------
+
+    /**
+     * @description Lightweight collection for fast admin role lookups. Writable only by other admins.
+     * @path /roles_admin/{uid}
+     * @allow (get) An admin checks if another user is also an admin. auth.uid is in /roles_admin.
+     * @deny (list) Any user, including an admin, tries to list all administrators.
+     * @principle Implements performant Role-Based Access Control (RBAC) and prevents enumeration.
+     */
+    match /roles_admin/{uid} {
+      allow get: if isAdmin();
+      allow list: if false; // Do not allow listing all admins for security.
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Stores private user profile data. Users can create and manage their own profile.
+     * @path /users/{userId}
+     * @allow (create) A new user signs up and creates their own profile document. auth.uid matches userId.
+     * @deny (list) Listing all users is forbidden to protect private data like emails.
+     * @principle Enforces self-creation and ownership, while allowing admin oversight.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if resource != null && canUpdateUser(request, resource);
+      allow delete: if isAdmin() && resource != null;
+
+      /**
+       * @description A user's sales history. Readable only by the user and admins.
+       * @path /users/{userId}/sales/{transactionId}
+       * @allow (read) The user views their own sales history on their dashboard.
+       * @deny (write) All client-side writes are disallowed. This collection should be managed by backend logic.
+       * @principle Enforces data ownership for sensitive financial data within a user-specific subcollection.
+       */
+      match /sales/{transactionId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if false; // Should be written by a trusted server process
+      }
+
+      /**
+       * @description Private draft tracks, visible only to their owner and admins.
+       * @path /users/{userId}/draft_tracks/{trackId}
+       * @allow (list) A user lists their own draft tracks. auth.uid matches userId.
+       * @deny (get) A user tries to fetch a draft track belonging to another user.
+       * @principle Restricts access to a user's own private data tree through path-based security.
+       */
+      match /draft_tracks/{trackId} {
+        allow get: if isOwner(userId) || isAdmin();
+        allow list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && request.resource.data.ownerId == userId;
+        allow update: if resource != null && isOwner(userId) && request.resource.data.ownerId == resource.data.ownerId;
+        allow delete: if resource != null && (isOwner(userId) || isAdmin());
+      }
+
+      /**
+       * @description A user's "like" on a track. Users can only manage their own likes.
+       * @path /users/{userId}/likes/{likeId}
+       * @allow (create) A user likes a track, creating a new document in their own likes subcollection.
+       * @deny (delete) A user tries to "unlike" a track on behalf of another user.
+       * @principle Enforces strict document ownership within a user-specific subcollection.
+       */
+      match /likes/{likeId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if false;
+        allow delete: if isOwner(userId) && resource != null;
+      }
+    }
+
+    /**
+     * @description Publicly readable collection of creator profiles for display on the homepage.
+     * @path /creators/{creatorId}
+     * @allow (read) Any visitor can read the list of public creator profiles.
+     * @allow (create) A creator can create their own public profile upon signup.
+     * @deny (update) A user tries to change another user's public profile.
+     * @principle Separates public data from private user data to prevent data leakage, while allowing self-management.
+     */
+    match /creators/{creatorId} {
+      allow read: if true;
+      allow create: if isOwner(creatorId) && request.resource.data.id == creatorId;
+      allow update: if isAdmin() || (
+        isOwner(creatorId) &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.featuredByAdmin == resource.data.featuredByAdmin &&
+        request.resource.data.id == resource.data.id
+      );
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Publicly available tracks in the marketplace. Readable by all, writable by owners.
+     * @path /tracks/{trackId}
+     * @allow (get, list) Any visitor, signed-in or not, browses the track marketplace.
+     * @deny (update) A user tries to change the price of a track they do not own.
+     * @principle Implements a public-read, owner-write model for a marketplace collection.
+     */
+    match /tracks/{trackId} {
+      allow get: if true;
+      allow list: if true; // Admins can list all tracks for their dashboard, this is already public
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if resource != null && canUpdateTrack(request, resource);
+      allow delete: if resource != null && (isOwner(resource.data.ownerId) || isAdmin());
+    }
+
+    /**
+     * @description Records of track purchases. Accessible only by the buyer, seller, or an admin.
+     * @path /transactions/{transactionId}
+     * @allow (get) The seller of a track views the transaction record. auth.uid matches sellerId.
+     * @allow (list) Admins can list all transactions for analytics.
+     * @principle Implements a shared access model for documents involving multiple parties.
+     */
+    match /transactions/{transactionId} {
+      allow get: if isSignedIn() && (isTransactionParticipant(resource.data) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.resource.data.buyerId == request.auth.uid;
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
+    }
+  }
+}

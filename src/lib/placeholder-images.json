@@ -1,0 +1,88 @@
+{
+  "placeholderImages": [
+    {
+      "id": "track-1",
+      "description": "Abstract sound waves",
+      "imageUrl": "https://picsum.photos/seed/track1/400/400",
+      "imageHint": "abstract soundwave"
+    },
+    {
+      "id": "track-2",
+      "description": "Neon city at night",
+      "imageUrl": "https://picsum.photos/seed/track2/400/400",
+      "imageHint": "neon city"
+    },
+    {
+      "id": "track-3",
+      "description": "Lofi style illustration",
+      "imageUrl": "https://picsum.photos/seed/track3/400/400",
+      "imageHint": "lofi illustration"
+    },
+    {
+      "id": "track-4",
+      "description": "Close up of a vinyl record",
+      "imageUrl": "https://picsum.photos/seed/track4/400/400",
+      "imageHint": "vinyl record"
+    },
+    {
+      "id": "track-5",
+      "description": "Person with headphones",
+      "imageUrl": "https://picsum.photos/seed/track5/400/400",
+      "imageHint": "headphones music"
+    },
+    {
+      "id": "track-6",
+      "description": "Abstract geometric pattern",
+      "imageUrl": "https://picsum.photos/seed/track6/400/400",
+      "imageHint": "abstract pattern"
+    },
+    {
+      "id": "track-7",
+      "description": "Galaxy stars background",
+      "imageUrl": "https://picsum.photos/seed/track7/400/400",
+      "imageHint": "galaxy stars"
+    },
+    {
+      "id": "track-8",
+      "description": "Sunset over a beach",
+      "imageUrl": "https://picsum.photos/seed/track8/400/400",
+      "imageHint": "beach sunset"
+    },
+    {
+      "id": "creator-1",
+      "description": "Portrait of a man in a studio",
+      "imageUrl": "https://picsum.photos/seed/creator1/200/200",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "creator-2",
+      "description": "Portrait of a woman with headphones",
+      "imageUrl": "https://picsum.photos/seed/creator2/200/200",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "creator-3",
+      "description": "Person sitting at a mixing desk",
+      "imageUrl": "https://picsum.photos/seed/creator3/200/200",
+      "imageHint": "music producer"
+    },
+    {
+      "id": "creator-4",
+      "description": "Artist singing into a microphone",
+      "imageUrl": "https://picsum.photos/seed/creator4/200/200",
+      "imageHint": "singer microphone"
+    },
+    {
+      "id": "creator-5",
+      "description": "DJ at a turntable",
+      "imageUrl": "https://picsum.photos/seed/creator5/200/200",
+      "imageHint": "DJ turntable"
+    },
+    {
+      "id": "creator-6",
+      "description": "Portrait of a smiling person",
+      "imageUrl": "https://picsum.photos/seed/creator6/200/200",
+      "imageHint": "person smiling"
+    }
+  ]
+}
