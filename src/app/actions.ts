@@ -7,7 +7,7 @@ import {
 import {
   suggestTrackTags,
   type SuggestTrackTagsInput,
-} from '@/ai/flows/suggest-track-tags';
+} from '@/ai/flows/suggest-track-description';
 import { v2 as cloudinary } from 'cloudinary';
 
 export async function generateDescriptionAction(

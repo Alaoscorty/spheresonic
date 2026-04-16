@@ -38,7 +38,6 @@ export default function Home() {
       firestore
         ? query(
             collection(firestore, 'creators'),
-            where('featuredByAdmin', '==', true),
             limit(6)
           )
         : null,
@@ -129,6 +128,11 @@ export default function Home() {
                   <Skeleton className="h-4 w-16" />
                 </div>
               ))}
+            {!creatorsLoading && creators?.length === 0 && (
+              <div className="col-span-full text-center text-muted-foreground">
+                {t('NoArtistsFound') || 'Aucun artiste disponible pour le moment.'}
+              </div>
+            )}
             {creators?.map((creator) => (
               <CreatorCard key={creator.id} creator={creator} />
             ))}

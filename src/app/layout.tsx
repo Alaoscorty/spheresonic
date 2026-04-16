@@ -28,7 +28,6 @@ export default function RootLayout({
       <I18nProvider>
         <FirebaseClientProvider>
           <ThemeProvider
-            attribute="class"
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange

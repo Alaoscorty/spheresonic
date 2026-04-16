@@ -3,7 +3,7 @@
 
 import { Link } from 'react-router-dom';
 import { Play, Pause, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { type Track } from '@/lib/data';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,6 @@ import {
 import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { processPayoutAction } from '@/app/actions';
 
 declare const FedaPay: any;
 
@@ -55,11 +54,22 @@ export function TrackCard({ track }: TrackCardProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const handlePlayPause = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    setIsPlaying(!isPlaying);
-    // Add audio playback logic here
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleAudioEnded = () => {
+    setIsPlaying(false);
   };
 
   const handlePurchase = async () => {
@@ -163,8 +173,56 @@ export function TrackCard({ track }: TrackCardProps) {
                 description: `You have successfully purchased "${track.title}".`,
               });
 
-              // 4. Trigger backend payout processing (non-blocking)
-              processPayoutAction(transactionRef.id);
+              const recipientPhone = sellerProfile?.payoutInfo?.mobileMoney?.phoneNumber;
+              const recipientProvider = sellerProfile?.payoutInfo?.mobileMoney?.provider;
+
+              if (!recipientPhone || !recipientProvider) {
+                toast({
+                  variant: 'destructive',
+                  title: 'Payout Configuration Missing',
+                  description:
+                    'The seller has not configured their mobile money payout details.',
+                });
+                return;
+              }
+
+              try {
+                const payoutResponse = await fetch('/api/fedapay-payout', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    transactionId: transactionRef.id,
+                    paymentGatewayTransactionId: transaction.id,
+                    amount: sellerEarnings,
+                    currency: 'XOF',
+                    recipientPhone,
+                    recipientProvider,
+                    commissionAmount,
+                    sellerId: track.ownerId,
+                    sellerEmail: sellerProfile?.email || '',
+                  }),
+                });
+
+                const payoutResult = await payoutResponse.json();
+                if (!payoutResponse.ok) {
+                  throw new Error(payoutResult.error || 'Payout service returned an error.');
+                }
+
+                toast({
+                  title: 'Payout Requested',
+                  description: 'The creator payout has been submitted to the payment backend.',
+                });
+              } catch (payoutError: any) {
+                console.error('Payout request failed:', payoutError);
+                toast({
+                  variant: 'destructive',
+                  title: 'Payout Failed',
+                  description:
+                    payoutError.message || 'Unable to initiate the creator payout. Please contact support.',
+                });
+              }
 
             } catch (error: any) {
                 console.error("Error processing purchase:", error);
@@ -243,6 +301,12 @@ export function TrackCard({ track }: TrackCardProps) {
           </div>
         </div>
       </CardContent>
+      <audio
+        ref={audioRef}
+        src={track.audioPreviewUrl}
+        onEnded={handleAudioEnded}
+        preload="none"
+      />
     </Card>
   );
 }
